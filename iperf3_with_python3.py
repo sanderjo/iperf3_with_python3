@@ -31,7 +31,7 @@ def run_speedtest(servername):
             print(cmd)
             output, err = run_cmd(cmd)
             if err:
-                print("ERROR:", err)
+                # print("ERROR:", err)
                 # print("output", output)
                 if "unable to send control message: Bad file descriptor" in err:
                     # network problem. to do: what if no IPv6?
