@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-# Use iperf3 to measure Internet speed
+# Use iperf3 to measure downstream Internet speed
 # needed binaries: iperf3, ping, python3
+# works on Linux
 
 import os, random, sys
 
@@ -31,7 +32,7 @@ def run_cmd(cmd):
 
 
 def run_iperf3_speedtest(servername, iptype=4):
-    if iptype not in [4, 6, "6"]:
+    if iptype not in [4, "4", 6, "6"]:
         # wrong input
         iptype = 4
     print("iptype", iptype)
@@ -63,8 +64,8 @@ def run_iperf3_speedtest(servername, iptype=4):
             if "unable to send control message: Bad file descriptor" in err:
                 # network problem. to do: what if no IPv6?
                 print("next loop")
-                # break
-                pass
+            elif "the server is busy running a test. try again later" in err:
+                print("next loop")
     return speed
 
 
@@ -85,7 +86,7 @@ def pingtime(servername):
 
 
 def quickest_server():
-    # find iperf3 servers with smalled ping time ... probably closest to client
+    # find iperf3 servers with smallest ping time ... probably closest to client
     fastest_pingtime = 1000000.0
     for server in iperf3_servers:
         server_pingtime = pingtime(server)
@@ -99,6 +100,7 @@ def quickest_server():
 ### Main
 
 
+# To do: check iperf3 and ping are there
 print("Starting")
 fastest_server = quickest_server()
 print("Fastest iperf3 server:", fastest_server)
