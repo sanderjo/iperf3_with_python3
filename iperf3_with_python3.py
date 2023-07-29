@@ -54,11 +54,9 @@ def run_iperf3_speedtest(servername, iptype=4):
                 [SUM]   0.00-5.15   sec  65.2 MBytes   106 Mbits/sec  242             sender
                 [SUM]   0.00-5.00   sec  58.3 MBytes  97.8 Mbits/sec                  receiver
                 """
-                if "SUM" in thisline:
-                    print("SJ sender", thisline)
+                if "SUM" in thisline and "receiver" in thisline:
                     speed = thisline.split()[5]
                     return speed  # speed found, so we're done
-                    break
         else:
             # print("ERROR:", err)
             # print("output", output)
