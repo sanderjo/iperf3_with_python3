@@ -24,3 +24,12 @@ iperf3 -p 5201 -t3 -6 --connect-timeout 300 --format m -c fra.speedtest.clouvide
 SPEED: 2220 Mbps
 Done
 ```
+
+To use on UbuntuDocker:
+
+```
+apt update
+apt install python3 iperf3 wget iputils-ping -y
+wget https://raw.githubusercontent.com/sanderjo/iperf3_with_python3/main/iperf3_with_python3.py
+python3 iperf3_with_python3.py
+```
