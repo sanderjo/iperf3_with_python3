@@ -13,8 +13,10 @@ iperf3_servers = [
     "la.speedtest.clouvider.net",
     "fra.speedtest.clouvider.net",
     "ash.speedtest.clouvider.net",
+    "nyc.speedtest.clouvider.net",
     "speedtest.uztelecom.uz",
     "proof.ovh.net",
+    # "iperf.worldstream.nl",
 ]
 
 
@@ -39,15 +41,22 @@ def run_iperf3_speedtest(servername, iptype=4):
         serverport = random.choice(ports)
         ports.remove(serverport)  # do not try that port again
         # print(ports)
-        cmd = "iperf3 -p {port} -t3 -{ipv46} --connect-timeout 300 --format m -c {server}".format(
+        cmd = "iperf3 -R -P15 -p {port} -t3 -{ipv46} --connect-timeout 300 --format m -c {server}".format(
             port=serverport, ipv46=iptype, server=servername
         )
         print(cmd)
         output, err = run_cmd(cmd)
         if not err:
             for thisline in output.split("\n"):
-                if "sender" in thisline:
-                    speed = thisline.split()[-4]
+                """
+                [SUM]   3.00-4.00   sec  12.2 MBytes   102 Mbits/sec
+                [SUM]   4.00-5.00   sec  11.2 MBytes  94.4 Mbits/sec
+                [SUM]   0.00-5.15   sec  65.2 MBytes   106 Mbits/sec  242             sender
+                [SUM]   0.00-5.00   sec  58.3 MBytes  97.8 Mbits/sec                  receiver
+                """
+                if "SUM" in thisline:
+                    print("SJ sender", thisline)
+                    speed = thisline.split()[5]
                     return speed  # speed found, so we're done
                     break
         else:
@@ -62,17 +71,18 @@ def run_iperf3_speedtest(servername, iptype=4):
 
 
 def pingtime(servername):
-    cmd = "ping -c1 -4 " + servername
+    cmd = "ping -c5 -i0.1 -4 " + servername  # 5 pings, with 0.1 sec interval, ipv4
     output, err = run_cmd(cmd)
     if err:
         print("ping error:", err)
     else:
-        # print(output.split("\n")[-2])
         output = output.split("\n")
         output.reverse()
         for line in output:
             if line.startswith("rtt"):
-                pingtime = float(line.split("/")[-3])
+                # rtt min/avg/max/mdev = 9.456/11.311/14.155/1.599 ms
+                pingtime = float(line.split("/")[-3])  # pick avg (average)
+                break
     return pingtime
 
 
