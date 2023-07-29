@@ -1,10 +1,21 @@
 #!/usr/bin/env python3
 
-# Use iperf3 (if installed) to measure Internet speed
+# Use iperf3 to measure Internet speed
+# needed binaries: iperf3, ping, python3
 
 import os, random, sys
 
 from subprocess import Popen, PIPE
+
+
+iperf3_servers = [
+    "ams.speedtest.clouvider.net",
+    "la.speedtest.clouvider.net",
+    "fra.speedtest.clouvider.net",
+    "ash.speedtest.clouvider.net",
+    "speedtest.uztelecom.uz",
+    "proof.ovh.net",
+]
 
 
 def run_cmd(cmd):
@@ -17,33 +28,37 @@ def run_cmd(cmd):
     return output, err
 
 
-def run_speedtest(servername):
-    for iptype in [4, 6]:
-        print("iptype", iptype)
-        ports = list(range(5200, 5210))  # not including 5210
-        for _ in range(5):  # max 5 tries
-            serverport = random.choice(ports)
-            ports.remove(serverport)  # do not try that port again
-            # print(ports)
-            cmd = "iperf3 -p {port} -t3 -{ipv46} --connect-timeout 300 --format m -c {server}".format(
-                port=serverport, ipv46=iptype, server=servername
-            )
-            print(cmd)
-            output, err = run_cmd(cmd)
-            if err:
-                # print("ERROR:", err)
-                # print("output", output)
-                if "unable to send control message: Bad file descriptor" in err:
-                    # network problem. to do: what if no IPv6?
-                    print("next loop")
-                    # break
-                    pass
-            else:
-                for thisline in output.split("\n"):
-                    print(
-                        "SPEED:", thisline.split()[-4], "Mbps"
-                    ) if "sender" in thisline else None
-                break
+def run_iperf3_speedtest(servername, iptype=4):
+    if iptype not in [4, 6, "6"]:
+        # wrong input
+        iptype = 4
+    print("iptype", iptype)
+    speed = 0
+    ports = list(range(5200, 5210))  # not including 5210
+    for _ in range(5):  # max 5 tries
+        serverport = random.choice(ports)
+        ports.remove(serverport)  # do not try that port again
+        # print(ports)
+        cmd = "iperf3 -p {port} -t3 -{ipv46} --connect-timeout 300 --format m -c {server}".format(
+            port=serverport, ipv46=iptype, server=servername
+        )
+        print(cmd)
+        output, err = run_cmd(cmd)
+        if not err:
+            for thisline in output.split("\n"):
+                if "sender" in thisline:
+                    speed = thisline.split()[-4]
+                    return speed  # speed found, so we're done
+                    break
+        else:
+            # print("ERROR:", err)
+            # print("output", output)
+            if "unable to send control message: Bad file descriptor" in err:
+                # network problem. to do: what if no IPv6?
+                print("next loop")
+                # break
+                pass
+    return speed
 
 
 def pingtime(servername):
@@ -61,30 +76,25 @@ def pingtime(servername):
     return pingtime
 
 
+def quickest_server():
+    # find iperf3 servers with smalled ping time ... probably closest to client
+    fastest_pingtime = 1000000.0
+    for server in iperf3_servers:
+        server_pingtime = pingtime(server)
+        print(server, int(server_pingtime), "msec")
+        if server_pingtime < fastest_pingtime:
+            fastest_pingtime = server_pingtime
+            fastest_server = server
+    return fastest_server
+
+
 ### Main
 
 
 print("Starting")
-
-# find iperf3 servers with smalled ping time ... probably closes to client
-fastest_pingtime = 1000000.0
-servers = [
-    "ams.speedtest.clouvider.net",
-    "la.speedtest.clouvider.net",
-    "fra.speedtest.clouvider.net",
-    "ash.speedtest.clouvider.net",
-    "speedtest.uztelecom.uz",
-    "proof.ovh.net",
-]
-for server in servers:
-    server_pingtime = pingtime(server)
-    print(server, int(server_pingtime), "msec")
-    if server_pingtime < fastest_pingtime:
-        fastest_pingtime = server_pingtime
-        fastest_server = server
-
+fastest_server = quickest_server()
 print("Fastest iperf3 server:", fastest_server)
-
-run_speedtest(fastest_server)
-
+ipv4_speed = run_iperf3_speedtest(fastest_server)
+ipv6_speed = run_iperf3_speedtest(fastest_server, 6)
+print("Speeds (Mbps), IPv4 resp IPv6:", ipv4_speed, ipv6_speed)
 print("Done")
