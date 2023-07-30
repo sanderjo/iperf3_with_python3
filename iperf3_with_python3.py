@@ -22,7 +22,10 @@ iperf3_servers = [
 
 
 def run_cmd(cmd):
-    process = Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
+    try:
+        process = Popen(cmd.split(), stdout=PIPE, stderr=PIPE)
+    except:
+        return None, None
     (output, err) = process.communicate()
     output = output.decode("utf-8")
     if err:
@@ -42,7 +45,13 @@ def run_iperf3_speedtest(servername, iptype=4):
         serverport = random.choice(ports)
         ports.remove(serverport)  # do not try that port again
         # print(ports)
+        """
         cmd = "iperf3 -R -P15 -p {port} -t3 -{ipv46} --connect-timeout 300 --format m -c {server}".format(
+            port=serverport, ipv46=iptype, server=servername
+        )
+        """
+        # run iperf3: Reverse (as receiver) 15 processes, p, max 3 seconds, format m (MBps)
+        cmd = "iperf3 -R -P15 -p {port} -t3 -{ipv46} --format m  -c {server}".format(
             port=serverport, ipv46=iptype, server=servername
         )
         print(cmd)
@@ -101,6 +110,17 @@ def quickest_server():
 
 
 # To do: check iperf3 and ping are there
+
+
+if (None, None) == run_cmd("ping"):
+    print("no ping found")
+    sys.exit(0)
+
+if (None, None) == run_cmd("iperf3"):
+    print("no iperf3 found")
+    sys.exit(0)
+
+
 print("Starting")
 fastest_server = quickest_server()
 print("Fastest iperf3 server:", fastest_server)
